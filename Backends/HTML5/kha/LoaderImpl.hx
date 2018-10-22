@@ -146,7 +146,7 @@ class LoaderImpl {
 					return;
 				}
 
-				done(new Blob(bytes));
+				done(bytes != null ? new Blob(bytes) : null);
 			}
 			else {
 				failed({ url: desc.files[0] });
