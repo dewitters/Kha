@@ -1,5 +1,7 @@
 package kha;
 
+import kha.WindowOptions;
+
 @:structInit
 class SystemOptions {
 	@:optional public var title: String = "Kha";
@@ -73,10 +75,11 @@ class System {
 
 	@:deprecated("Use System.start instead")
 	public static function init(options: OldSystemOptions, callback: Void -> Void): Void {
-		var features: Int = 0;
-		if (options.resizable) features |= WindowOptions.FeatureResizable;
-		if (options.maximizable) features |= WindowOptions.FeatureMaximizable;
-		if (options.minimizable) features |= WindowOptions.FeatureMinimizable;
+		var features:WindowFeatures = None;
+		if (options.resizable) features |= WindowFeatures.FeatureResizable;
+		if (options.maximizable) features |= WindowFeatures.FeatureMaximizable;
+		if (options.minimizable) features |= WindowFeatures.FeatureMinimizable;
+
 		var newOptions: SystemOptions = {
 			title: options.title,
 			width: options.width,
@@ -147,6 +150,10 @@ class System {
 		dropFilesListeners.push(dropFilesListener);
 	}
 
+	public static function removeDropListerer(listener: String -> Void): Void {
+		dropFilesListeners.remove(listener);
+	}
+
 	public static function notifyOnCutCopyPaste(cutListener: Void->String, copyListener: Void->String, pasteListener: String->Void): Void {
 		System.cutListener = cutListener;
 		System.copyListener = copyListener;
@@ -208,7 +215,7 @@ class System {
 	public static function windowHeight(window: Int = 0): Int {
 		return Window.all[window].height;
 	}
-	
+
 	public static var screenRotation(get, null): ScreenRotation;
 
 	static function get_screenRotation(): ScreenRotation {
@@ -219,6 +226,13 @@ class System {
 
 	static function get_systemId(): String {
 		return SystemImpl.getSystemId();
+	}
+
+	/**
+	 * Pulses the vibration hardware on the device for time in milliseconds, if such hardware exists.
+	 */
+	public static function vibrate(ms:Int): Void {
+		return SystemImpl.vibrate(ms);
 	}
 
 	/**
@@ -249,7 +263,7 @@ class System {
 
 	@:deprecated("Use the kha.Window API instead")
 	public static function isFullscreen(): Bool {
-		return Window.get(0).mode == WindowMode.Fullscreen || Window.get(0).mode == WindowMode.Fullscreen;
+		return Window.get(0).mode == WindowMode.Fullscreen || Window.get(0).mode == WindowMode.ExclusiveFullscreen;
 	}
 
 	@:deprecated("Use the kha.Window API instead")
@@ -264,17 +278,17 @@ class System {
 
 	@:deprecated("This does nothing")
 	public static function notifyOnFullscreenChange(func: Void -> Void, error: Void -> Void): Void {
-		
+
 	}
 
 	@:deprecated("This does nothing")
 	public static function removeFullscreenListener(func: Void -> Void, error: Void -> Void): Void {
-		
+
 	}
 
 	@:deprecated("This does nothing. On Windows you can use Window.resize instead after setting the mode to ExclusiveFullscreen")
 	public static function changeResolution(width: Int, height: Int): Void {
-		
+
 	}
 
 	@:deprecated("Use System.stop instead")

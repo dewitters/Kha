@@ -78,7 +78,7 @@ class SystemImpl {
 	public static function windowHeight(windowId: Int): Int {
 		return untyped __cpp__('Kore::System::windowHeight(windowId)');
 	}
-	
+
 	public static function screenDpi(): Int {
 		return untyped __cpp__('Kore::Display::primary()->pixelsPerInch()');
 	}
@@ -99,9 +99,14 @@ class SystemImpl {
 	public static function getSystemId(): String {
 		return '';
 	}
-	
+
+	public static function vibrate(ms:Int): Void {
+		untyped __cpp__("Kore::System::vibrate(ms)");
+	}
+
+	@:functionCode('return ::String(Kore::System::language());')
 	public static function getLanguage(): String {
-		return "en"; //TODO: Implement
+		return "en";
 	}
 
 	public static function requestShutdown(): Bool {
@@ -269,11 +274,11 @@ class SystemImpl {
 		#end
 		*/
 
-		kha.kore.graphics4.Graphics.lastWindow = -1;
 		Scheduler.executeFrame();
 		System.render(framebuffers);
 		var win = kha.kore.graphics4.Graphics.lastWindow;
 		untyped __cpp__('Kore::Graphics4::end(win);');
+		kha.kore.graphics4.Graphics.lastWindow = -1;
 	}
 
 	public static function keyDown(code: KeyCode): Void {
@@ -314,7 +319,7 @@ class SystemImpl {
 	public static function mouseWheel(windowId: Int, delta: Int): Void {
 		mouse.sendWheelEvent(windowId, delta);
 	}
-	
+
 	public static function mouseLeave(windowId: Int): Void {
 		mouse.sendLeaveEvent(windowId);
 	}
@@ -398,7 +403,7 @@ class SystemImpl {
 	public static function dropFiles(filePath: String): Void {
 		System.dropFiles(filePath);
 	}
-	
+
 	public static function copy(): String {
 		if (System.copyListener != null) {
 			return System.copyListener();
@@ -407,7 +412,7 @@ class SystemImpl {
 			return null;
 		}
 	}
-	
+
 	public static function cut(): String {
 		if (System.cutListener != null) {
 			return System.cutListener();
@@ -416,7 +421,7 @@ class SystemImpl {
 			return null;
 		}
 	}
-	
+
 	public static function paste(data: String): Void {
 		if (System.pasteListener != null) {
 			System.pasteListener(data);
@@ -429,13 +434,13 @@ class SystemImpl {
 		init_kore(name, width, height, &window, &framebuffer);
 	')
 	private static function initKore(name: String, width: Int, height: Int, win: WindowOptions, frame: FramebufferOptions): Void {
-		
+
 	}
-	
+
 	public static function setKeepScreenOn(on: Bool): Void {
 		untyped __cpp__("Kore::System::setKeepScreenOn(on)");
 	}
-	
+
 	public static function loadUrl(url: String): Void {
 		untyped __cpp__("Kore::System::loadURL(url)");
 	}
