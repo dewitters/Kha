@@ -8,9 +8,9 @@ import kha.graphics4.Usage;
 import kha.Image;
 
 class Graphics1 implements kha.graphics1.Graphics {
-	private var canvas: Canvas;
-	private var texture: Image;
-	private var pixels: Bytes;
+	var canvas: Canvas;
+	var texture: Image;
+	var pixels: Bytes;
 
 	public function new(canvas: Canvas) {
 		this.canvas = canvas;
@@ -25,16 +25,16 @@ class Graphics1 implements kha.graphics1.Graphics {
 
 	public function end(): Void {
 		texture.unlock();
-		canvas.g2.begin();
+		canvas.g2.begin(false);
 		canvas.g2.drawImage(texture, 0, 0);
 		canvas.g2.end();
 	}
 
 	public function setPixel(x: Int, y: Int, color: Color): Void {
-		#if kha_html5
-		pixels.setInt32(y * texture.realWidth * 4 + x * 4, Color.fromBytes(color.Bb, color.Gb, color.Rb, color.Ab));
+		#if (kha_html5 || kha_krom)
+		pixels.setInt32(y * texture.stride + x * 4, Color.fromBytes(color.Bb, color.Gb, color.Rb, color.Ab));
 		#else
-		pixels.setInt32(y * texture.realWidth * 4 + x * 4, color);
+		pixels.setInt32(y * texture.stride + x * 4, color);
 		#end
 	}
 }

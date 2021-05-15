@@ -2,9 +2,36 @@ package kha.input;
 
 import kha.netsync.Controller;
 
+/** See `Mouse.setWheelEventBlockBehavior` */
+enum MouseEventBlockBehavior {
+	Full;
+	None;
+	Custom(func: (event: Dynamic) -> Bool);
+}
+
+enum MouseCursor {
+	Default;
+	Pointer;
+	Text;
+	EastWestResize;
+	NorthSouthResize;
+	NorthEastResize;
+	SouthEastResize;
+	NorthWestResize;
+	SouthWestResize;
+	Grab;
+	Grabbing;
+	NotAllowed;
+	Wait;
+	Crosshair;
+	Custom(image: kha.Image);
+}
+
 @:allow(kha.SystemImpl)
 @:expose
 class Mouse extends Controller {
+	static var wheelEventBlockBehavior = MouseEventBlockBehavior.Full;
+
 	/**
 	 * Get current Mouse.
 	 * @param num (optional) mouse id (0 by default).
@@ -14,28 +41,42 @@ class Mouse extends Controller {
 	}
 
 	/**
+	 * Allows fine grained control of mouse wheel browser default actions (html5 only).
+	 * @param behavior can be:
+	 *   Full - block wheel events.
+	 *   None - do not block wheel events.
+	 *   Custom(func:(event:WheelEvent)->Bool) - set custom handler for wheel event (should return true if wheel event blocked).
+	 */
+	public static function setWheelEventBlockBehavior(behavior: MouseEventBlockBehavior): Void {
+		wheelEventBlockBehavior = behavior;
+	}
+
+	/**
 	 * Creates event handlers from passed functions.
-	 * @param downListener function with `button:Int`,`x:Int`,`y:Int` arguments, fired when a mouse is pressed down. `button:Int` is `0` for left button, `1` for right and `2` for middle.
-	 * @param upListener function with `button:Int`,`x:Int`,`y:Int` arguments, fired when a mouse is released.
-	 * @param moveListener function with `x:Int`,`y:Int`,`moveX:Int`,`moveY:Int` arguments, fired when a mouse is moved. `moveX`/`moveY` is the difference between the current coordinates and the last position of the mouse.
-	 * @param wheelListener function with `delta:Int` argument, fired when the wheel rotates. It can have a value of `1` or `-1` depending on the rotation.
+	 * @param downListener (optional) function with `button:Int`,`x:Int`,`y:Int` arguments, fired when a mouse is pressed down. `button:Int` is `0` for left button, `1` for right and `2` for middle.
+	 * @param upListener (optional) function with `button:Int`,`x:Int`,`y:Int` arguments, fired when a mouse is released.
+	 * @param moveListener (optional) function with `x:Int`,`y:Int`,`moveX:Int`,`moveY:Int` arguments, fired when a mouse is moved. `moveX`/`moveY` is the difference between the current coordinates and the last position of the mouse.
+	 * @param wheelListener (optional) function with `delta:Int` argument, fired when the wheel rotates. It can have a value of `1` or `-1` depending on the rotation.
 	 * @param leaveListener (optional) function without` arguments, when fired mouse leave canvas.
 	 */
-	public function notify(downListener: Int->Int->Int->Void, upListener: Int->Int->Int->Void, moveListener: Int->Int->Int->Int->Void, wheelListener: Int->Void, leaveListener:Void->Void = null): Void {
+	public function notify(?downListener: (button: Int, x: Int, y: Int) -> Void, ?upListener: (button: Int, x: Int, y: Int) -> Void,
+			?moveListener: (x: Int, y: Int, moveX: Int, moveY: Int) -> Void, ?wheelListener: (delta: Int) -> Void, ?leaveListener: () -> Void = null): Void {
 		notifyWindowed(0, downListener, upListener, moveListener, wheelListener, leaveListener);
 	}
 
 	/**
 	 * Removes event handlers from the passed functions that were passed to `notify` function.
 	 */
-	public function remove(downListener: Int->Int->Int->Void, upListener: Int->Int->Int->Void, moveListener: Int->Int->Int->Int->Void, wheelListener: Int->Void, leaveListener:Void->Void = null): Void {
+	public function remove(?downListener: (button: Int, x: Int, y: Int) -> Void, ?upListener: (button: Int, x: Int, y: Int) -> Void,
+			?moveListener: (x: Int, y: Int, moveX: Int, moveY: Int) -> Void, ?wheelListener: (delta: Int) -> Void, ?leaveListener: () -> Void = null): Void {
 		removeWindowed(0, downListener, upListener, moveListener, wheelListener, leaveListener);
 	}
 
 	/**
 	 * Creates event handlers from passed functions like `notify` function, but only for window with `windowId:Int` id argument. The windows are not supported by all the targets.
 	 */
-	public function notifyWindowed(windowId: Int, downListener: Int->Int->Int->Void, upListener: Int->Int->Int->Void, moveListener: Int->Int->Int->Int->Void, wheelListener: Int->Void, leaveListener:Void->Void = null): Void {
+	public function notifyWindowed(windowId: Int, ?downListener: Int->Int->Int->Void, ?upListener: Int->Int->Int->Void, ?moveListener: Int->Int->Int->Int->Void,
+			?wheelListener: Int->Void, ?leaveListener: Void->Void = null): Void {
 		if (downListener != null) {
 			if (windowDownListeners == null) {
 				windowDownListeners = new Array();
@@ -83,16 +124,16 @@ class Mouse extends Controller {
 
 			windowWheelListeners[windowId].push(wheelListener);
 		}
-		
+
 		if (leaveListener != null) {
 			if (windowLeaveListeners == null) {
 				windowLeaveListeners = new Array();
 			}
-			
+
 			while (windowLeaveListeners.length <= windowId) {
 				windowLeaveListeners.push(new Array());
 			}
-			
+
 			windowLeaveListeners[windowId].push(leaveListener);
 		}
 	}
@@ -100,7 +141,8 @@ class Mouse extends Controller {
 	/**
 	 * Removes event handlers for `windowId:Int` from the passed functions that were passed to `notifyWindowed` function.
 	 */
-	public function removeWindowed(windowId: Int, downListener: Int->Int->Int->Void, upListener: Int->Int->Int->Void, moveListener: Int->Int->Int->Int->Void, wheelListener: Int->Void, leaveListener:Void->Void = null): Void {
+	public function removeWindowed(windowId: Int, ?downListener: Int->Int->Int->Void, ?upListener: Int->Int->Int->Void, ?moveListener: Int->Int->Int->Int->Void,
+			?wheelListener: Int->Void, ?leaveListener: Void->Void = null): Void {
 		if (downListener != null) {
 			if (windowDownListeners != null) {
 				if (windowId < windowDownListeners.length) {
@@ -156,7 +198,7 @@ class Mouse extends Controller {
 				trace('no wheelListeners were ever registered');
 			}
 		}
-		
+
 		if (leaveListener != null) {
 			if (windowLeaveListeners != null) {
 				if (windowId < windowLeaveListeners.length) {
@@ -175,16 +217,12 @@ class Mouse extends Controller {
 	/**
 	 * Locks the cursor position and hides it. For catching movements, use the `moveX`/`moveY` arguments of your `moveListener` handler.
 	 */
-	public function lock(): Void {
-
-	}
+	public function lock(): Void {}
 
 	/**
 	 * Unlock the cursor position and hides it. For catching movements, use the `moveX`/`moveY` arguments of your `moveListener` handler.
 	 */
-	public function unlock(): Void {
-
-	}
+	public function unlock(): Void {}
 
 	/**
 	 * Unlocks the cursor position and displays it.
@@ -205,54 +243,53 @@ class Mouse extends Controller {
 	 * @param change function fired when the lock is turned on / off.
 	 * @param error function fired when a toggle error occurs.
 	 */
-	public function notifyOnLockChange(change: Void -> Void, error: Void -> Void): Void {
-
-	}
+	public function notifyOnLockChange(change: Void->Void, error: Void->Void): Void {}
 
 	/**
 	 * Removes event handlers from the passed functions that were passed to `notifyOnLockChange` function.
 	 */
-	public function removeFromLockChange(change: Void -> Void, error: Void -> Void): Void{
-
-	}
+	public function removeFromLockChange(change: Void->Void, error: Void->Void): Void {}
 
 	/**
 	 * Hides the system cursor (without locking)
 	 */
-	public function hideSystemCursor(): Void {
-
-	}
+	public function hideSystemCursor(): Void {}
 
 	/**
 	 * Show the system cursor
 	 */
-	public function showSystemCursor(): Void {
+	public function showSystemCursor(): Void {}
 
-	}
+	/**
+	 * Set the native system cursor
+	 * @param cursor The native cursor to show.
+	 */
+	public function setSystemCursor(cursor: MouseCursor): Void {}
 
-	private static var instance: Mouse;
+	static var instance: Mouse;
+
 	var windowDownListeners: Array<Array<Int->Int->Int->Void>>;
 	var windowUpListeners: Array<Array<Int->Int->Int->Void>>;
 	var windowMoveListeners: Array<Array<Int->Int->Int->Int->Void>>;
 	var windowWheelListeners: Array<Array<Int->Void>>;
 	var windowLeaveListeners: Array<Array<Void->Void>>;
 
-	private function new() {
+	function new() {
 		super();
 		instance = this;
 	}
 
 	@input
-	private function sendLeaveEvent(windowId:Int): Void {
+	function sendLeaveEvent(windowId: Int): Void {
 		if (windowLeaveListeners != null) {
 			for (listener in windowLeaveListeners[windowId]) {
 				listener();
 			}
 		}
 	}
-	
+
 	@input
-	private function sendDownEvent(windowId: Int, button: Int, x: Int, y: Int): Void {
+	function sendDownEvent(windowId: Int, button: Int, x: Int, y: Int): Void {
 		if (windowDownListeners != null) {
 			for (listener in windowDownListeners[windowId]) {
 				listener(button, x, y);
@@ -261,7 +298,7 @@ class Mouse extends Controller {
 	}
 
 	@input
-	private function sendUpEvent(windowId: Int, button: Int, x: Int, y: Int): Void {
+	function sendUpEvent(windowId: Int, button: Int, x: Int, y: Int): Void {
 		if (windowUpListeners != null) {
 			for (listener in windowUpListeners[windowId]) {
 				listener(button, x, y);
@@ -270,7 +307,7 @@ class Mouse extends Controller {
 	}
 
 	@input
-	private function sendMoveEvent(windowId: Int, x: Int, y: Int, movementX: Int, movementY: Int): Void {
+	function sendMoveEvent(windowId: Int, x: Int, y: Int, movementX: Int, movementY: Int): Void {
 		if (windowMoveListeners != null) {
 			for (listener in windowMoveListeners[windowId]) {
 				listener(x, y, movementX, movementY);
@@ -279,7 +316,7 @@ class Mouse extends Controller {
 	}
 
 	@input
-	private function sendWheelEvent(windowId: Int, delta: Int): Void {
+	function sendWheelEvent(windowId: Int, delta: Int): Void {
 		if (windowWheelListeners != null) {
 			for (listener in windowWheelListeners[windowId]) {
 				listener(delta);

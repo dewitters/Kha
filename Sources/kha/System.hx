@@ -61,24 +61,29 @@ typedef OldSystemOptions = {
 
 @:allow(kha.SystemImpl)
 class System {
-	static var renderListeners: Array<Array<Framebuffer> -> Void> = [];
-	static var foregroundListeners: Array<Void -> Void> = [];
-	static var resumeListeners: Array<Void -> Void> = [];
-	static var pauseListeners: Array<Void -> Void> = [];
-	static var backgroundListeners: Array<Void -> Void> = [];
-	static var shutdownListeners: Array<Void -> Void> = [];
-	static var dropFilesListeners: Array<String -> Void> = [];
+	static var renderListeners: Array<Array<Framebuffer>->Void> = [];
+	static var foregroundListeners: Array<Void->Void> = [];
+	static var resumeListeners: Array<Void->Void> = [];
+	static var pauseListeners: Array<Void->Void> = [];
+	static var backgroundListeners: Array<Void->Void> = [];
+	static var shutdownListeners: Array<Void->Void> = [];
+	static var dropFilesListeners: Array<String->Void> = [];
 	static var cutListener: Void->String = null;
 	static var copyListener: Void->String = null;
 	static var pasteListener: String->Void = null;
+	static var loginListener: Void->Void = null;
+	static var logoutListener: Void->Void = null;
 	static var theTitle: String;
 
 	@:deprecated("Use System.start instead")
-	public static function init(options: OldSystemOptions, callback: Void -> Void): Void {
-		var features:WindowFeatures = None;
-		if (options.resizable) features |= WindowFeatures.FeatureResizable;
-		if (options.maximizable) features |= WindowFeatures.FeatureMaximizable;
-		if (options.minimizable) features |= WindowFeatures.FeatureMinimizable;
+	public static function init(options: OldSystemOptions, callback: Void->Void): Void {
+		var features: kha.WindowFeatures = None;
+		if (options.resizable)
+			features |= WindowFeatures.FeatureResizable;
+		if (options.maximizable)
+			features |= WindowFeatures.FeatureMaximizable;
+		if (options.minimizable)
+			features |= WindowFeatures.FeatureMinimizable;
 
 		var newOptions: SystemOptions = {
 			title: options.title,
@@ -93,25 +98,25 @@ class System {
 				verticalSync: options.vSync
 			}
 		};
-		start(newOptions, function (_) {
+		start(newOptions, function(_) {
 			callback();
 		});
 	}
 
-	public static function start(options: SystemOptions, callback: Window -> Void): Void {
+	public static function start(options: SystemOptions, callback: Window->Void): Void {
 		theTitle = options.title;
 		SystemImpl.init(options, callback);
 	}
 
 	public static var title(get, never): String;
 
-	private static function get_title(): String {
+	static function get_title(): String {
 		return theTitle;
 	}
 
 	@:deprecated("Use System.notifyOnFrames instead")
-	public static function notifyOnRender(listener: Framebuffer -> Void, id: Int = 0): Void {
-		renderListeners.push(function (framebuffers: Array<Framebuffer>) {
+	public static function notifyOnRender(listener: Framebuffer->Void, id: Int = 0): Void {
+		renderListeners.push(function(framebuffers: Array<Framebuffer>) {
 			if (id < framebuffers.length) {
 				listener(framebuffers[id]);
 			}
@@ -125,7 +130,7 @@ class System {
 	 * @param listener
 	 * The callback to add
 	 */
-	public static function notifyOnFrames(listener: Array<Framebuffer> -> Void): Void {
+	public static function notifyOnFrames(listener: Array<Framebuffer>->Void): Void {
 		renderListeners.push(listener);
 	}
 
@@ -134,23 +139,43 @@ class System {
 	 * @param listener
 	 * The callback to remove
 	 */
-	public static function removeFramesListener(listener: Array<Framebuffer> -> Void): Void {
+	public static function removeFramesListener(listener: Array<Framebuffer>->Void): Void {
 		renderListeners.remove(listener);
 	}
 
-	public static function notifyOnApplicationState(foregroundListener: Void -> Void, resumeListener: Void -> Void,	pauseListener: Void -> Void, backgroundListener: Void-> Void, shutdownListener: Void -> Void): Void {
-		if (foregroundListener != null) foregroundListeners.push(foregroundListener);
-		if (resumeListener != null) resumeListeners.push(resumeListener);
-		if (pauseListener != null) pauseListeners.push(pauseListener);
-		if (backgroundListener != null) backgroundListeners.push(backgroundListener);
-		if (shutdownListener != null) shutdownListeners.push(shutdownListener);
+	public static function notifyOnApplicationState(foregroundListener: Void->Void, resumeListener: Void->Void, pauseListener: Void->Void,
+			backgroundListener: Void->Void, shutdownListener: Void->Void): Void {
+		if (foregroundListener != null)
+			foregroundListeners.push(foregroundListener);
+		if (resumeListener != null)
+			resumeListeners.push(resumeListener);
+		if (pauseListener != null)
+			pauseListeners.push(pauseListener);
+		if (backgroundListener != null)
+			backgroundListeners.push(backgroundListener);
+		if (shutdownListener != null)
+			shutdownListeners.push(shutdownListener);
 	}
 
-	public static function notifyOnDropFiles(dropFilesListener: String -> Void): Void {
+	public static function removeApplicationStateListeners(foregroundListener: Void->Void, resumeListener: Void->Void, pauseListener: Void->Void,
+			backgroundListener: Void->Void, shutdownListener: Void->Void): Void {
+		if (foregroundListener != null)
+			foregroundListeners.remove(foregroundListener);
+		if (resumeListener != null)
+			resumeListeners.remove(resumeListener);
+		if (pauseListener != null)
+			pauseListeners.remove(pauseListener);
+		if (backgroundListener != null)
+			backgroundListeners.remove(backgroundListener);
+		if (shutdownListener != null)
+			shutdownListeners.remove(shutdownListener);
+	}
+
+	public static function notifyOnDropFiles(dropFilesListener: String->Void): Void {
 		dropFilesListeners.push(dropFilesListener);
 	}
 
-	public static function removeDropListerer(listener: String -> Void): Void {
+	public static function removeDropListener(listener: String->Void): Void {
 		dropFilesListeners.remove(listener);
 	}
 
@@ -160,43 +185,67 @@ class System {
 		System.pasteListener = pasteListener;
 	}
 
+	/*public static function copyToClipboard(text: String) {
+		SystemImpl.copyToClipboard(text);
+	}*/
+	public static function notifyOnLoginLogout(loginListener: Void->Void, logoutListener: Void->Void) {
+		System.loginListener = loginListener;
+		System.logoutListener = logoutListener;
+	}
+
+	public static function login(): Void {
+		SystemImpl.login();
+	}
+
+	public static function waitingForLogin(): Bool {
+		return SystemImpl.waitingForLogin();
+	}
+
+	public static function allowUserChange(): Void {
+		SystemImpl.allowUserChange();
+	}
+
+	public static function disallowUserChange(): Void {
+		SystemImpl.disallowUserChange();
+	}
+
 	static function render(framebuffers: Array<Framebuffer>): Void {
 		for (listener in renderListeners) {
 			listener(framebuffers);
 		}
 	}
 
-	private static function foreground(): Void {
+	static function foreground(): Void {
 		for (listener in foregroundListeners) {
 			listener();
 		}
 	}
 
-	private static function resume(): Void {
+	static function resume(): Void {
 		for (listener in resumeListeners) {
 			listener();
 		}
 	}
 
-	private static function pause(): Void {
+	static function pause(): Void {
 		for (listener in pauseListeners) {
 			listener();
 		}
 	}
 
-	private static function background(): Void {
+	static function background(): Void {
 		for (listener in backgroundListeners) {
 			listener();
 		}
 	}
 
-	private static function shutdown(): Void {
+	static function shutdown(): Void {
 		for (listener in shutdownListeners) {
 			listener();
 		}
 	}
 
-	private static function dropFiles(filePath: String): Void {
+	static function dropFiles(filePath: String): Void {
 		for (listener in dropFilesListeners) {
 			listener(filePath);
 		}
@@ -204,7 +253,7 @@ class System {
 
 	public static var time(get, null): Float;
 
-	private static function get_time(): Float {
+	static function get_time(): Float {
 		return SystemImpl.getTime();
 	}
 
@@ -231,7 +280,7 @@ class System {
 	/**
 	 * Pulses the vibration hardware on the device for time in milliseconds, if such hardware exists.
 	 */
-	public static function vibrate(ms:Int): Void {
+	public static function vibrate(ms: Int): Void {
 		return SystemImpl.vibrate(ms);
 	}
 
@@ -240,11 +289,11 @@ class System {
 	 */
 	public static var language(get, never): String;
 
-	private static function get_language(): String {
+	static function get_language(): String {
 		return SystemImpl.getLanguage();
 	}
 
-  /**
+	/**
 	 * Schedules the application to stop as soon as possible. This is not possible on all targets.
 	 * @return Returns true if the application can be stopped
 	 */
@@ -277,19 +326,13 @@ class System {
 	}
 
 	@:deprecated("This does nothing")
-	public static function notifyOnFullscreenChange(func: Void -> Void, error: Void -> Void): Void {
-
-	}
+	public static function notifyOnFullscreenChange(func: Void->Void, error: Void->Void): Void {}
 
 	@:deprecated("This does nothing")
-	public static function removeFullscreenListener(func: Void -> Void, error: Void -> Void): Void {
-
-	}
+	public static function removeFullscreenListener(func: Void->Void, error: Void->Void): Void {}
 
 	@:deprecated("This does nothing. On Windows you can use Window.resize instead after setting the mode to ExclusiveFullscreen")
-	public static function changeResolution(width: Int, height: Int): Void {
-
-	}
+	public static function changeResolution(width: Int, height: Int): Void {}
 
 	@:deprecated("Use System.stop instead")
 	public static function requestShutdown(): Void {
@@ -299,19 +342,35 @@ class System {
 	@:deprecated("Use the kha.Window API instead")
 	public static var vsync(get, null): Bool;
 
-	private static function get_vsync(): Bool {
+	static function get_vsync(): Bool {
 		return Window.get(0).vSynced;
 	}
 
 	@:deprecated("Use the kha.Display API instead")
 	public static var refreshRate(get, null): Int;
 
-	private static function get_refreshRate(): Int {
+	static function get_refreshRate(): Int {
 		return Display.primary.frequency;
 	}
 
 	@:deprecated("Use the kha.Display API instead")
 	public static function screenDpi(): Int {
 		return Display.primary.pixelsPerInch;
+	}
+
+	public static function safeZone(): Float {
+		return SystemImpl.safeZone();
+	}
+
+	public static function automaticSafeZone(): Bool {
+		return SystemImpl.automaticSafeZone();
+	}
+
+	public static function setSafeZone(value: Float): Void {
+		SystemImpl.setSafeZone(value);
+	}
+
+	public static function unlockAchievement(id: Int): Void {
+		SystemImpl.unlockAchievement(id);
 	}
 }

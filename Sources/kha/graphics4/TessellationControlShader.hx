@@ -4,17 +4,13 @@ import kha.Blob;
 
 #if cpp
 extern class TessellationControlShader {
-	public function new(source: Blob, file: String);
+	public function new(sources: Array<Blob>, files: Array<String>);
 	public function delete();
 }
 #else
 class TessellationControlShader {
-	public function new(source: Blob, file: String) {
-		
-	}
-	
-	public function delete(): Void {
-		
-	}
+	public function new(sources: Array<Blob>, files: Array<String>) {}
+
+	public function delete(): Void {}
 }
 #end

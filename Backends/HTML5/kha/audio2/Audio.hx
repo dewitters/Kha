@@ -1,49 +1,52 @@
 package kha.audio2;
 
+import js.Syntax;
 import js.Browser;
 import js.html.URL;
 import js.html.audio.AudioContext;
 import js.html.audio.AudioProcessingEvent;
 import js.html.audio.ScriptProcessorNode;
+import kha.internal.IntBox;
 import kha.js.AEAudioChannel;
 import kha.Sound;
 
 class Audio {
-	private static var buffer: Buffer;
+	public static var disableGcInteractions = false;
+	static var intBox: IntBox = new IntBox(0);
+	static var buffer: Buffer;
 	@:noCompletion public static var _context: AudioContext;
-	private static var processingNode: ScriptProcessorNode;
-	
-	private static function initContext(): Void {
+	static var processingNode: ScriptProcessorNode;
+
+	static function initContext(): Void {
 		try {
 			_context = new AudioContext();
 			return;
 		}
-		catch (e: Dynamic) {
-			
-		}
+		catch (e:Dynamic) {}
 		try {
-			untyped __js__('this._context = new webkitAudioContext();');
+			Syntax.code("this._context = new webkitAudioContext();");
 			return;
 		}
-		catch (e: Dynamic) {
-			
-		}
+		catch (e:Dynamic) {}
 	}
-	
+
 	@:noCompletion
 	public static function _init(): Bool {
 		initContext();
-		if (_context == null) return false;
-		
+		if (_context == null)
+			return false;
+
+		Audio.samplesPerSecond = Math.round(_context.sampleRate);
 		var bufferSize = 1024 * 2;
 		buffer = new Buffer(bufferSize * 4, 2, Std.int(_context.sampleRate));
-		
+
 		processingNode = _context.createScriptProcessor(bufferSize, 0, 2);
-		processingNode.onaudioprocess = function (e: AudioProcessingEvent) {
+		processingNode.onaudioprocess = function(e: AudioProcessingEvent) {
 			var output1 = e.outputBuffer.getChannelData(0);
 			var output2 = e.outputBuffer.getChannelData(1);
 			if (audioCallback != null) {
-				audioCallback(e.outputBuffer.length * 2, buffer);
+				intBox.value = e.outputBuffer.length * 2;
+				audioCallback(intBox, buffer);
 				for (i in 0...e.outputBuffer.length) {
 					output1[i] = buffer.data.get(buffer.readLocation);
 					buffer.readLocation += 1;
@@ -67,7 +70,7 @@ class Audio {
 
 	public static var samplesPerSecond: Int;
 
-	public static var audioCallback: Int->Buffer->Void;
+	public static var audioCallback: kha.internal.IntBox->Buffer->Void;
 
 	static var virtualChannels: Array<VirtualStreamChannel> = [];
 
@@ -77,10 +80,10 @@ class Audio {
 			channel.wake();
 		}
 	}
-	
+
 	public static function stream(sound: Sound, loop: Bool = false): kha.audio1.AudioChannel {
-		//var source = _context.createMediaStreamSource(cast sound.compressedData.getData());
-		//source.connect(_context.destination);
+		// var source = _context.createMediaStreamSource(cast sound.compressedData.getData());
+		// source.connect(_context.destination);
 		var element = Browser.document.createAudioElement();
 		#if kha_debug_html5
 		var blob = new js.html.Blob([sound.compressedData.getData()], {type: "audio/ogg"});

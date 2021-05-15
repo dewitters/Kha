@@ -5,15 +5,15 @@ import unityEngine.Shader;
 
 class PipelineState extends PipelineStateBase {
 	public var material: Material;
-	
+
 	public function new() {
 		super();
 	}
-	
+
 	public function compile(): Void {
 		material = new Material(Shader.Find("Custom/" + vertexShader.name + "." + fragmentShader.name));
 	}
-	
+
 	public function getConstantLocation(name: String): ConstantLocation {
 		return new kha.unity.ConstantLocation(name);
 	}
@@ -22,8 +22,8 @@ class PipelineState extends PipelineStateBase {
 		return new kha.unity.TextureUnit(name);
 	}
 	/*
-	public function getAttributeLocation(name: String): kha.graphics4.AttributeLocation {
-		return null;
-	}
-	*/
+		public function getAttributeLocation(name: String): kha.graphics4.AttributeLocation {
+			return null;
+		}
+	 */
 }

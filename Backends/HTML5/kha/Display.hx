@@ -5,9 +5,9 @@ import js.Browser;
 class Display {
 	static var instance: Display = new Display();
 
-	function new() {
+	function new() {}
 
-	}
+	public static function init(): Void {}
 
 	public static var primary(get, never): Display;
 
@@ -60,20 +60,20 @@ class Display {
 	public var frequency(get, never): Int;
 
 	function get_frequency(): Int {
-		return 60;
+		return SystemImpl.estimatedRefreshRate;
 	}
 
 	public var pixelsPerInch(get, never): Int;
 
 	function get_pixelsPerInch(): Int {
-		var dpiElement = Browser.document.createElement('div');
+		var dpiElement = Browser.document.createElement("div");
 		dpiElement.style.position = "absolute";
 		dpiElement.style.width = "1in";
 		dpiElement.style.height = "1in";
 		dpiElement.style.left = "-100%";
 		dpiElement.style.top = "-100%";
 		Browser.document.body.appendChild(dpiElement);
-		var dpi:Int = dpiElement.offsetHeight;
+		var dpi: Int = dpiElement.offsetHeight;
 		dpiElement.remove();
 		return dpi;
 	}

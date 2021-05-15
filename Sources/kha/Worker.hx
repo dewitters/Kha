@@ -2,7 +2,6 @@ package kha;
 
 import haxe.macro.Context;
 import haxe.macro.Expr;
-
 #if macro
 import kha.internal.AssetsBuilder;
 import sys.io.File;
@@ -10,13 +9,12 @@ import sys.io.File;
 
 using haxe.macro.ExprTools;
 
-#if kha_html5
+#if (kha_html5 || kha_krom)
 class Worker {
 	#if kha_in_worker
-
 	public static function notifyWorker(func: Dynamic->Void): Void {
 		#if !macro
-		untyped __js__("self").addEventListener("message", function (e) {
+		js.Syntax.code("self").addEventListener("message", function(e) {
 			func(e.data);
 		});
 		#end
@@ -24,12 +22,11 @@ class Worker {
 
 	public static function postFromWorker(message: Dynamic): Void {
 		#if !macro
-		untyped __js__("self").postMessage(message);
+		js.Syntax.code("self").postMessage(message);
 		#end
 	}
 
 	#else
-
 	#if macro
 	static var threads = new Array<String>();
 	#else
@@ -49,7 +46,7 @@ class Worker {
 
 	public function notify(func: Dynamic->Void): Void {
 		#if !macro
-		worker.addEventListener("message", function (e) {
+		worker.addEventListener("message", function(e) {
 			func(e.data);
 		});
 		#end
@@ -73,33 +70,57 @@ class Worker {
 		File.saveContent(AssetsBuilder.findResources() + "workers.txt", threadstring);
 		return Context.parse("kha.Worker._create(\"" + name + ".js\")", Context.currentPos());
 	}
-
 	#end
 }
 #end
 
 #if kha_kore
-
-import cpp.vm.Thread;
+import sys.thread.Thread;
+import sys.thread.Tls;
 import kha.Scheduler;
+
+private class Message {
+	public final threadId: Int;
+	public final message: Dynamic;
+
+	public function new(message: Dynamic) {
+		this.threadId = @:privateAccess Worker.threadId.value;
+		this.message = message;
+	}
+}
 
 class Worker {
 	public static var _mainThread: Thread;
-	var thread: Thread;
 
-	function new(thread: Thread) {
+	static var notifyFuncs: Array<Dynamic->Void> = [];
+	static var taskId: Int = -1;
+	static var nextThreadId: Int = 0;
+	static var threadId = new Tls<Int>();
+
+	var thread: Thread;
+	var id: Int;
+
+	function new(thread: Thread, id: Int) {
 		this.thread = thread;
+		this.id = id;
 	}
 
 	public static function create(clazz: Class<Dynamic>): Worker {
-		return new Worker(Thread.create(Reflect.field(clazz, "main")));
+		var id = nextThreadId++;
+		return new Worker(Thread.create(function() {
+			threadId.value = id;
+			Reflect.field(clazz, "main")();
+		}), id);
 	}
 
 	public function notify(func: Dynamic->Void): Void {
-		Scheduler.addFrameTask(function () {
-			var message = Thread.readMessage(false);
+		notifyFuncs[id] = func;
+		if (taskId != -1) return;
+		taskId = Scheduler.addFrameTask(function() {
+			var message:Message = Thread.readMessage(false);
 			if (message != null) {
-				func(message);
+				var func = notifyFuncs[message.threadId];
+				func(message.message);
 			}
 		}, 0);
 	}
@@ -118,7 +139,7 @@ class Worker {
 	}
 
 	public static function postFromWorker(message: Dynamic): Void {
-		_mainThread.sendMessage(message);
+		_mainThread.sendMessage(new Message(message));
 	}
 }
 #end
